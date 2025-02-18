@@ -85,3 +85,26 @@ if __name__ == "__main__":
     key_name = f"client_upload_{os.path.basename(file_path)}"
 
     upload_file(client, bucket_name, file_path, key_name)
+
+
+
+
+====================================================================================================================
+@app.get("/download")
+def download_file(object_name: str):
+    try:
+        s3_client = get_s3_client()
+        response = s3_client.get_object(Bucket=BUCKET_NAME, Key=object_name)
+
+        def file_iterator():
+            for chunk in response['Body'].iter_chunks(chunk_size=8192):
+                yield chunk
+
+        return StreamingResponse(
+            file_iterator(),
+            media_type='application/octet-stream',
+            headers={"Content-Disposition": f"attachment; filename={object_name}"}
+        )
+    except ClientError as e:
+        raise HTTPException(status_code=404, detail=f"File not found: {str(e)}")
+
